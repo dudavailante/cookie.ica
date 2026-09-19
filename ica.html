@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Iça — Cookies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F3E8D6;
+    --bg-elev: #FBF6EC;
+    --ink: #1F3B2F;
+    --ink-soft: #5C6E52;
+    --caramel: #1F3B2F;
+    --caramel-deep: #1F3B2F;
+    --cookie-brown: #4B2E1F;
+    --butter: #E7A7A3;
+    --dough: #E4E7D7;
+    --line: rgba(31,59,47,0.14);
+    --shadow: rgba(31,59,47,0.18);
+
+    --card-choc-bg: #1F3B2F;
+    --card-choc-ink: #F3E8D6;
+    --card-choc-soft: #B9C9AE;
+    --card-caramel-bg: #E7A7A3;
+    --card-caramel-ink: #4B2E1F;
+    --card-caramel-soft: #7A4A42;
+    --card-cream-bg: #DCE3D0;
+    --card-cream-ink: #1F3B2F;
+    --card-cream-soft: #5C6E52;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"]{
+    --bg: #14261D;
+    --bg-elev: #1B3226;
+    --ink: #F3E8D6;
+    --ink-soft: #B9C9AE;
+    --line: rgba(243,232,214,0.14);
+    --shadow: rgba(0,0,0,0.45);
+    --dough: #203827;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #14261D;
+      --bg-elev: #1B3226;
+      --ink: #F3E8D6;
+      --ink-soft: #B9C9AE;
+      --line: rgba(243,232,214,0.14);
+      --shadow: rgba(0,0,0,0.45);
+      --dough: #203827;
+      color-scheme: dark;
+    }
+  }
+
+  *{ box-sizing: border-box; }
+  html{
+    scroll-padding-top: env(safe-area-inset-top, 0px);
+    -webkit-text-size-adjust: 100%;
+  }
+  html, body{ height: 100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Manrope', system-ui, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    overflow-x: hidden;
+  }
+  img{ max-width:100%; display:block; }
+  button{ font-family: inherit; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  .wrap{ max-width: 640px; margin: 0 auto; position: relative; }
+
+  .topbar{
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 20px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid transparent;
+    transition: border-color .25s ease, background .25s ease;
+  }
+  .topbar.scrolled{ border-color: var(--line); }
+  .brand-mark{
+    font-family:'Fraunces', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 20px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .cart-btn{
+    position: relative;
+    display:flex; align-items:center; justify-content:center;
+    width: 40px; height:40px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg-elev);
+    color: var(--ink);
+    cursor:pointer;
+  }
+  .cart-btn svg{ width:19px; height:19px; }
+  .cart-count{
+    position:absolute; top:-4px; right:-4px;
+    min-width:18px; height:18px; padding:0 4px;
+    background: var(--caramel-deep); color:#fff;
+    border-radius:999px; font-size:11px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+    transform: scale(0);
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+  }
+  .cart-count.show{ transform: scale(1); }
+
+  .hero{
+    position: relative;
+    height: min(78vh, 620px);
+    min-height: 420px;
+    overflow: hidden;
+  }
+  .hero img{
+    width:100%; height:100%; object-fit:cover;
+    object-position: center 38%;
+  }
+  .hero::after{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(180deg,
+      rgba(10,18,14,0) 0%,
+      rgba(10,18,14,0.12) 55%,
+      rgba(10,18,14,0.3) 100%);
+  }
+  .hero-content{
+    position:absolute; left:0; right:0; bottom:0;
+    padding: 70px 24px 30px;
+    color:#F3E8D6;
+    background: linear-gradient(180deg,
+      rgba(9,16,12,0) 0%,
+      rgba(9,16,12,0.55) 30%,
+      rgba(8,14,11,0.88) 62%,
+      rgba(8,14,11,0.94) 100%);
+  }
+  .hero-eyebrow{
+    font-size: 14px; font-weight: 600; color: #EFC3C0;
+    margin: 0 0 6px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.55);
+  }
+  .hero h1{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: clamp(38px, 11vw, 54px);
+    line-height: 0.98;
+    margin: 0 0 12px;
+    letter-spacing: -0.01em;
+    text-shadow: 0 3px 16px rgba(0,0,0,0.6);
+  }
+  .hero p{
+    margin:0;
+    font-size: 15.5px;
+    line-height: 1.5;
+    color: #EDF0E6;
+    max-width: 34ch;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.55);
+  }
+  .scroll-cue{
+    position:absolute; bottom: 14px; right: 20px;
+    width: 34px; height:34px; border-radius:999px;
+    border:1px solid rgba(251,238,221,0.4);
+    display:flex; align-items:center; justify-content:center;
+    animation: bob 2.2s ease-in-out infinite;
+  }
+  .scroll-cue svg{ width:14px; height:14px; }
+  @keyframes bob{
+    0%,100%{ transform: translateY(0); }
+    50%{ transform: translateY(5px); }
+  }
+
+  .intro{ padding: 30px 24px 6px; }
+  .intro p{
+    margin:0;
+    font-size: 15px;
+    line-height:1.6;
+    color: var(--ink-soft);
+    max-width: 46ch;
+  }
+  .intro strong{ color: var(--ink); font-weight: 700; }
+
+  .section-title{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 26px;
+    margin: 34px 24px 4px;
+    color: var(--ink);
+  }
+  .section-sub{
+    margin: 0 24px 18px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+
+  .menu{
+    display:flex; flex-direction:column; gap:18px;
+    padding: 0 20px 8px;
+  }
+  .card{
+    border-radius: 22px;
+    overflow:hidden;
+    box-shadow: 0 10px 24px -14px var(--shadow);
+  }
+  .card-photo{ aspect-ratio: 4/3; overflow:hidden; }
+  .card-photo img{
+    width:100%; height:100%; object-fit:cover;
+    transition: transform .5s ease;
+  }
+  .card-body{ padding: 18px 20px 20px; }
+  .card-name{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 21px;
+    margin: 0 0 6px;
+  }
+  .card-desc{
+    font-size: 13.8px;
+    line-height:1.55;
+    margin: 0 0 16px;
+    opacity: 0.86;
+  }
+  .card-foot{
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 12px;
+  }
+  .card-price{
+    font-weight: 800;
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .card.choc{ background: var(--card-choc-bg); color: var(--card-choc-ink); }
+  .card.choc .card-desc{ color: var(--card-choc-soft); opacity:1; }
+  .card.caramel{ background: var(--card-caramel-bg); color: var(--card-caramel-ink); }
+  .card.caramel .card-desc{ color: var(--card-caramel-soft); opacity:1; }
+  .card.cream{ background: var(--card-cream-bg); color: var(--card-cream-ink); }
+  .card.cream .card-desc{ color: var(--card-cream-soft); opacity:1; }
+
+  .add-btn{
+    appearance:none; border:none; cursor:pointer;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 14px;
+    background: var(--caramel-deep);
+    color: #FFF8EC;
+    transition: transform .12s ease;
+  }
+  .add-btn:active{ transform: scale(0.94); }
+  .card.choc .add-btn{ background: var(--butter); color: #4B2E1F; }
+
+  .stepper{
+    display:flex; align-items:center; gap:14px;
+    background: rgba(0,0,0,0.14);
+    border-radius: 999px;
+    padding: 6px 8px;
+  }
+  .card.cream .stepper{ background: rgba(43,24,16,0.08); }
+  .stepper button{
+    appearance:none; border:none; cursor:pointer;
+    width: 26px; height:26px; border-radius:999px;
+    background: var(--bg-elev);
+    color: var(--ink);
+    font-size: 16px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    line-height:1;
+  }
+  .stepper button:active{ transform: scale(0.9); }
+  .stepper .qty{
+    min-width: 16px; text-align:center;
+    font-weight: 800; font-size: 14.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .craft{
+    margin: 44px 20px 8px;
+    padding: 26px 20px;
+    border-radius: 22px;
+    background: var(--dough);
+  }
+  .craft-photos{ display:flex; gap: 10px; margin-bottom: 16px; }
+  .craft-photos img{
+    width: 50%; aspect-ratio: 1/1; object-fit:cover; border-radius:14px;
+  }
+  .craft h3{
+    font-family:'Fraunces', serif; font-weight:600; font-style:italic;
+    font-size: 21px; margin: 0 0 8px;
+  }
+  .craft p{
+    margin:0; font-size:14px; line-height:1.6; color: var(--ink-soft);
+  }
+
+  /* ---- Localização / Mapa ---- */
+  .location{
+    margin: 44px 20px 8px;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 10px 24px -14px var(--shadow);
+    background: var(--bg-elev);
+  }
+  .map-frame{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: var(--dough);
+  }
+  .map-frame iframe{
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+  .location-card{
+    padding: 18px 20px 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .location-info .l-title{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 18px;
+    margin: 0 0 4px;
+  }
+  .location-info p{
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .directions-btn{
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 13.5px;
+    background: var(--caramel-deep);
+    color: #FFF8EC;
+    white-space: nowrap;
+  }
+  .directions-btn svg{ width: 15px; height: 15px; }
+
+  footer{
+    padding: 40px 24px calc(110px + env(safe-area-inset-bottom, 0px));
+  }
+  footer .f-title{
+    font-family:'Fraunces', serif; font-weight:600; font-size:18px; margin:0 0 10px;
+  }
+  footer p{
+    margin: 0 0 4px; font-size: 13.5px; color: var(--ink-soft); line-height:1.6;
+  }
+  footer .f-note{
+    margin-top: 16px; font-size: 12px; opacity:0.6;
+  }
+
+  .cart-bar{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 50;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(120%);
+    transition: transform .3s cubic-bezier(.32,.72,0,1);
+  }
+  .cart-bar.show{ transform: translateY(0); }
+  .cart-bar-inner{
+    max-width: 608px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 18px;
+    padding: 14px 18px;
+    box-shadow: 0 14px 30px -10px rgba(0,0,0,0.45);
+  }
+  .cart-bar-info{ display:flex; flex-direction:column; gap:1px; }
+  .cart-bar-info span:first-child{ font-size: 12px; opacity:0.72; }
+  .cart-bar-info span:last-child{ font-size: 16px; font-weight:800; font-variant-numeric: tabular-nums; }
+  .cart-bar button{
+    appearance:none; border:none; cursor:pointer;
+    background: var(--butter); color:#4B2E1F;
+    padding: 10px 18px; border-radius: 999px;
+    font-weight:800; font-size:14px;
+  }
+
+  .overlay{
+    position: fixed; inset:0; z-index:60;
+    background: rgba(20,11,6,0.5);
+    opacity:0; pointer-events:none;
+    transition: opacity .25s ease;
+  }
+  .overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position: fixed; left:0; right:0; bottom:0; z-index:61;
+    max-width: 640px; margin: 0 auto;
+    background: var(--bg-elev);
+    border-radius: 24px 24px 0 0;
+    padding: 10px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    max-height: 86vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform .32s cubic-bezier(.32,.72,0,1);
+    box-shadow: 0 -20px 50px -20px rgba(0,0,0,0.4);
+  }
+  .sheet.show{ transform: translateY(0); }
+  .sheet-handle{
+    width: 40px; height:4px; border-radius:99px;
+    background: var(--line);
+    margin: 6px auto 14px;
+  }
+  .sheet h2{
+    font-family:'Fraunces', serif; font-weight:600; font-size:22px; margin: 0 0 16px;
+  }
+  .empty-cart{
+    text-align:center; padding: 30px 10px 10px;
+    color: var(--ink-soft); font-size:14px;
+  }
+  .empty-cart svg{ width:40px; height:40px; margin-bottom:10px; opacity:0.5; }
+
+  .cart-item{
+    display:flex; align-items:center; gap:12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .cart-item img{
+    width:52px; height:52px; border-radius:12px; object-fit:cover; flex-shrink:0;
+  }
+  .cart-item-info{ flex:1; min-width:0; }
+  .cart-item-info .name{ font-weight:700; font-size:14px; margin:0 0 2px; }
+  .cart-item-info .unit{ font-size:12px; color: var(--ink-soft); margin:0; }
+  .cart-item .stepper{ background: var(--dough); flex-shrink:0; }
+  .cart-item .line-total{
+    width: 74px; text-align:right; font-weight:800; font-size:13.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .totals{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 16px 0 6px;
+    font-size: 15px;
+  }
+  .totals .amount{ font-weight:800; font-size:19px; }
+
+  .field-label{
+    display:block; font-size:12.5px; font-weight:700; color: var(--ink-soft);
+    margin: 14px 0 6px;
+  }
+  .name-input{
+    width:100%;
+    padding: 13px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .name-input:focus{
+    outline: 2px solid var(--caramel);
+    outline-offset: 1px;
+  }
+  .pickup-note{
+    display:flex; gap:8px; align-items:flex-start;
+    margin-top: 14px;
+    padding: 11px 12px;
+    background: var(--dough);
+    border-radius: 12px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height:1.5;
+  }
+  .pickup-note svg{ width:16px; height:16px; flex-shrink:0; margin-top:1px; color: var(--caramel-deep); }
+
+  .whatsapp-btn{
+    width:100%;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    appearance:none; border:none; cursor:pointer;
+    margin-top: 16px;
+    padding: 15px 18px;
+    border-radius: 14px;
+    background: #25D366;
+    color: #06340F;
+    font-weight: 800;
+    font-size: 15.5px;
+  }
+  .whatsapp-btn:disabled{
+    background: var(--line);
+    color: var(--ink-soft);
+    cursor:not-allowed;
+  }
+  .whatsapp-btn svg{ width:20px; height:20px; }
+
+  .close-btn{
+    position:absolute; top: 14px; right: 18px;
+    width:32px; height:32px; border-radius:999px;
+    border:1px solid var(--line);
+    background: var(--bg-elev);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .close-btn svg{ width:14px; height:14px; }
+
+  :focus-visible{ outline: 2px solid var(--caramel); outline-offset: 2px; }
+
+  @media (min-width: 520px){
+    .menu{ padding: 0 24px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar" id="topbar">
+    <span class="brand-mark">Cookies Iça</span>
+    <button class="cart-btn" id="openCartBtn" aria-label="Ver carrinho">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+
+  <section class="hero">
+    <img src="images/capa-ica.jpg" alt="Cookies Iça recém-assados sobre grade, ao lado de adesivos da marca" />
+    <div class="hero-content">
+      <p class="hero-eyebrow">Cookies artesanais</p>
+      <h1>Cookies Iça</h1>
+      <p>Massa amanteigada, recheio generoso e aquele fio que escorre no primeiro pedaço. Retirada no local.</p>
+    </div>
+    <div class="scroll-cue" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F3E8D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+  </section>
+
+  <div class="intro">
+    <p><strong>Sem entrega por enquanto</strong> — todo pedido é combinado por aqui e retirado com a gente. Escolha os sabores, monte a sacola e finalize no WhatsApp.</p>
+  </div>
+
+  <h2 class="section-title">Cardápio</h2>
+  <p class="section-sub">Assados todos os dias.</p>
+
+  <div class="menu" id="menu"></div>
+
+  <div class="craft">
+    <div class="craft-photos">
+      <img src="images/ninho-detalhe.jpg" alt="Cookie de Ninho polvilhado, visto de cima" />
+      <img src="images/nutella-detalhe.jpg" alt="Cookie recém-saído do forno ao lado do pote de Nutella" />
+    </div>
+    <h3>Por trás da Iça</h3>
+    <p>Seu cookie sai do forno para você.</p>
+  </div>
+
+  <section class="location">
+    <div class="map-frame">
+      <iframe
+        src="https://www.google.com/maps?q=Rua+Joaquim+Murtinho,+65,+C%C3%A1ceres+-+MT&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allowfullscreen
+        title="Localização da Cookies Iça no mapa"
+      ></iframe>
+    </div>
+    <div class="location-card">
+      <div class="location-info">
+        <p class="l-title">Rua Joaquim Murtinho, 65</p>
+        <p>Cáceres – MT</p>
+      </div>
+      <a class="directions-btn" href="https://maps.app.goo.gl/S4SrnRWAXcRY8udi8" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+        Como chegar
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <p class="f-title">Retirada</p>
+    <p>Rua Joaquim Murtinho, 65 .</p>
+    <p class="f-title" style="margin-top:18px;">Funcionamento</p>
+    <p>Sábado e domingo, das 15h às 20h (ou até acabar o estoque).</p>
+    <p class="f-note">@cookie.ica</p>
+  </footer>
+
+</div>
+
+<div class="cart-bar" id="cartBar">
+  <div class="cart-bar-inner">
+    <div class="cart-bar-info">
+      <span id="cartBarItems">0 itens</span>
+      <span id="cartBarTotal">R$ 0,00</span>
+    </div>
+    <button id="cartBarBtn">Ver sacola</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <button class="close-btn" id="closeSheetBtn" aria-label="Fechar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+  <div class="sheet-handle"></div>
+  <h2 id="sheetTitle">Sua sacola</h2>
+
+  <div id="cartItemsWrap"></div>
+
+  <div id="cartFilled" style="display:none;">
+    <div class="totals">
+      <span>Total</span>
+      <span class="amount" id="sheetTotal">R$ 0,00</span>
+    </div>
+
+    <label class="field-label" for="customerName">Seu nome</label>
+    <input class="name-input" id="customerName" type="text" placeholder="Como podemos te chamar?" autocomplete="name" maxlength="40" />
+
+    <div class="pickup-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 13v-2z"/></svg>
+      <span>Pedido só para retirada.</span>
+    </div>
+
+    <button class="whatsapp-btn" id="sendWhatsappBtn" disabled>
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 6.32A8.86 8.86 0 0012.05 4a8.94 8.94 0 00-7.73 13.4L3 21l3.73-1.28A8.94 8.94 0 0012.05 21h.01a8.94 8.94 0 006.32-15.28 8.9 8.9 0 00-.78-.4zM12.06 19.4a7.4 7.4 0 01-3.8-1.04l-.27-.16-2.83.97.95-2.76-.18-.28a7.44 7.44 0 1113.85-3.9 7.4 7.4 0 01-7.72 7.17zm4.07-5.56c-.22-.11-1.32-.65-1.53-.72-.2-.08-.35-.11-.5.11-.15.22-.58.72-.71.87-.13.15-.26.16-.48.06-.22-.11-.94-.35-1.79-1.11-.66-.59-1.11-1.32-1.24-1.54-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.06-.11-.5-1.21-.69-1.66-.18-.43-.37-.38-.5-.38-.13-.01-.28-.01-.43-.01a.83.83 0 00-.6.28c-.2.22-.79.77-.79 1.87s.81 2.17.92 2.32c.11.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.06 1.32-.54 1.51-1.06.19-.52.19-.96.13-1.06-.06-.09-.2-.15-.42-.26z"/></svg>
+      Pedir pelo WhatsApp
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var WHATSAPP_NUMBER = "556596360708"; // <-- TROQUE AQUI
+
+  var PRODUCTS = [
+    {
+      id: "nutella",
+      name: "Cookie de Nutella",
+      desc: "Massa tradicional com gotas de chocolate ao leite, pedaços de chocolate nobre meio amargo e recheio generoso de Nutella.",
+      price: 15.00,
+      img: "images/nutella-1.jpg",
+      theme: "choc"
+    },
+    {
+      id: "laranja-doce-de-leite",
+      name: "Cookie de Laranja com Doce de Leite",
+      desc: "Massa aromática com raspas de laranja, gotas de chocolate ao leite, pedaços de chocolate nobre meio amargo e recheio cremoso de doce de leite.",
+      price: 12.00,
+      img: "images/doce-de-leite-1.jpg",
+      theme: "caramel"
+    },
+    {
+      id: "ninho",
+      name: "Cookie de Ninho",
+      desc: "Massa amanteigada de Ninho, com gotas de chocolate branco e recheio cremoso e irresistível de Ninho.",
+      price: 12.00,
+      img: "images/ninho-1.jpg",
+      theme: "cream"
+    }
+  ];
+
+  var cart = {};
+
+  try {
+    var saved = localStorage.getItem("ica-cart");
+    if (saved) cart = JSON.parse(saved) || {};
+  } catch (e) { cart = {}; }
+
+  function saveCart(){
+    try { localStorage.setItem("ica-cart", JSON.stringify(cart)); } catch(e){}
+  }
+
+  function fmtBRL(v){
+    return v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  }
+
+  function cartCount(){
+    var n = 0;
+    for (var k in cart) n += (cart[k]||0);
+    return n;
+  }
+  function cartTotal(){
+    var t = 0;
+    PRODUCTS.forEach(function(p){ t += (cart[p.id]||0) * p.price; });
+    return t;
+  }
+
+  var menuEl = document.getElementById('menu');
+
+  function renderMenu(){
+    menuEl.innerHTML = "";
+    PRODUCTS.forEach(function(p){
+      var qty = cart[p.id] || 0;
+      var card = document.createElement('div');
+      card.className = 'card ' + p.theme;
+      card.innerHTML =
+        '<div class="card-photo"><img src="'+p.img+'" alt="'+p.name+'" loading="lazy"/></div>' +
+        '<div class="card-body">' +
+          '<h3 class="card-name">'+p.name+'</h3>' +
+          '<p class="card-desc">'+p.desc+'</p>' +
+          '<div class="card-foot">' +
+            '<span class="card-price">'+fmtBRL(p.price)+'</span>' +
+            '<div class="qty-area" data-id="'+p.id+'"></div>' +
+          '</div>' +
+        '</div>';
+      menuEl.appendChild(card);
+      renderQtyArea(card.querySelector('.qty-area'), p.id);
+    });
+  }
+
+  function renderQtyArea(el, id){
+    var qty = cart[id] || 0;
+    el.innerHTML = "";
+    if (qty === 0){
+      var btn = document.createElement('button');
+      btn.className = 'add-btn';
+      btn.textContent = 'Adicionar';
+      btn.addEventListener('click', function(){
+        cart[id] = 1;
+        saveCart();
+        renderQtyArea(el, id);
+        updateCartUI();
+      });
+      el.appendChild(btn);
+    } else {
+      var step = document.createElement('div');
+      step.className = 'stepper';
+      step.innerHTML =
+        '<button aria-label="Diminuir" data-act="minus">−</button>' +
+        '<span class="qty">'+qty+'</span>' +
+        '<button aria-label="Aumentar" data-act="plus">+</button>';
+      step.querySelector('[data-act="minus"]').addEventListener('click', function(){
+        cart[id] = Math.max(0, (cart[id]||0) - 1);
+        if (cart[id] === 0) delete cart[id];
+        saveCart();
+        renderQtyArea(el, id);
+        updateCartUI();
+      });
+      step.querySelector('[data-act="plus"]').addEventListener('click', function(){
+        cart[id] = (cart[id]||0) + 1;
+        saveCart();
+        renderQtyArea(el, id);
+        updateCartUI();
+      });
+      el.appendChild(step);
+    }
+  }
+
+  var cartBar = document.getElementById('cartBar');
+  var cartBarItems = document.getElementById('cartBarItems');
+  var cartBarTotal = document.getElementById('cartBarTotal');
+  var cartCountBadge = document.getElementById('cartCount');
+  var cartItemsWrap = document.getElementById('cartItemsWrap');
+  var cartFilled = document.getElementById('cartFilled');
+  var sheetTotal = document.getElementById('sheetTotal');
+  var sendBtn = document.getElementById('sendWhatsappBtn');
+  var nameInput = document.getElementById('customerName');
+
+  try {
+    var savedName = localStorage.getItem("ica-name");
+    if (savedName) nameInput.value = savedName;
+  } catch(e){}
+
+  function updateCartUI(){
+    var n = cartCount();
+    var total = cartTotal();
+
+    cartBarItems.textContent = n + (n === 1 ? ' item' : ' itens');
+    cartBarTotal.textContent = fmtBRL(total);
+    cartBar.classList.toggle('show', n > 0);
+
+    cartCountBadge.textContent = n;
+    cartCountBadge.classList.toggle('show', n > 0);
+
+    renderCartSheet();
+    validateSendBtn();
+  }
+
+  function renderCartSheet(){
+    var n = cartCount();
+    cartItemsWrap.innerHTML = "";
+    if (n === 0){
+      cartFilled.style.display = 'none';
+      var empty = document.createElement('div');
+      empty.className = 'empty-cart';
+      empty.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>' +
+        '<p>Sua sacola está vazia.<br>Escolha um cookie no cardápio.</p>';
+      cartItemsWrap.appendChild(empty);
+      return;
+    }
+    cartFilled.style.display = 'block';
+    PRODUCTS.forEach(function(p){
+      var qty = cart[p.id] || 0;
+      if (qty === 0) return;
+      var row = document.createElement('div');
+      row.className = 'cart-item';
+      row.innerHTML =
+        '<img src="'+p.img+'" alt="" />' +
+        '<div class="cart-item-info">' +
+          '<p class="name">'+p.name+'</p>' +
+          '<p class="unit">'+fmtBRL(p.price)+' cada</p>' +
+        '</div>' +
+        '<div class="stepper" data-id="'+p.id+'">' +
+          '<button aria-label="Diminuir" data-act="minus">−</button>' +
+          '<span class="qty">'+qty+'</span>' +
+          '<button aria-label="Aumentar" data-act="plus">+</button>' +
+        '</div>' +
+        '<span class="line-total">'+fmtBRL(p.price*qty)+'</span>';
+      row.querySelector('[data-act="minus"]').addEventListener('click', function(){
+        cart[p.id] = Math.max(0, (cart[p.id]||0) - 1);
+        if (cart[p.id] === 0) delete cart[p.id];
+        saveCart();
+        updateCartUI();
+      });
+      row.querySelector('[data-act="plus"]').addEventListener('click', function(){
+        cart[p.id] = (cart[p.id]||0) + 1;
+        saveCart();
+        updateCartUI();
+      });
+      cartItemsWrap.appendChild(row);
+    });
+    sheetTotal.textContent = fmtBRL(cartTotal());
+  }
+
+  function validateSendBtn(){
+    var n = cartCount();
+    var name = nameInput.value.trim();
+    sendBtn.disabled = !(n > 0 && name.length > 0);
+  }
+  nameInput.addEventListener('input', function(){
+    validateSendBtn();
+    try { localStorage.setItem("ica-name", nameInput.value); } catch(e){}
+  });
+
+  function buildMessage(){
+    var name = nameInput.value.trim();
+    var lines = [];
+    lines.push('Oi! Quero fazer um pedido para retirada 🍪');
+    lines.push('');
+    lines.push('Nome: ' + name);
+    lines.push('');
+    PRODUCTS.forEach(function(p){
+      var qty = cart[p.id] || 0;
+      if (qty === 0) return;
+      lines.push(qty + 'x ' + p.name + ' — ' + fmtBRL(p.price*qty));
+    });
+    lines.push('');
+    lines.push('Total: ' + fmtBRL(cartTotal()));
+    return lines.join('\n');
+  }
+
+  sendBtn.addEventListener('click', function(){
+    if (sendBtn.disabled) return;
+    var msg = buildMessage();
+    var url = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
+    window.location.href = url;
+  });
+
+  var overlay = document.getElementById('overlay');
+  var sheet = document.getElementById('sheet');
+
+  function openSheet(){
+    overlay.classList.add('show');
+    sheet.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSheet(){
+    overlay.classList.remove('show');
+    sheet.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('openCartBtn').addEventListener('click', openSheet);
+  document.getElementById('cartBarBtn').addEventListener('click', openSheet);
+  document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
+  overlay.addEventListener('click', closeSheet);
+
+  var topbar = document.getElementById('topbar');
+  window.addEventListener('scroll', function(){
+    topbar.classList.toggle('scrolled', window.scrollY > 8);
+  }, { passive:true });
+
+  document.querySelector('.scroll-cue').addEventListener('click', function(){
+    document.getElementById('menu').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  renderMenu();
+  updateCartUI();
+})();
+</script>
+</body>
+</html>
