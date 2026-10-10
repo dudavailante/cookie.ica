@@ -405,6 +405,13 @@
     padding: 10px 18px; border-radius: 999px;
     font-weight:800; font-size:14px;
   }
+  @media (max-width: 519px){
+    .cart-bar{
+      bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+      padding: 12px 16px;
+    }
+    .cart-bar-inner{ padding-top: 16px; padding-bottom: 16px; }
+  }
 
   .overlay{
     position: fixed; inset:0; z-index:60;
@@ -744,7 +751,6 @@
       btn.addEventListener('click', function(){
         cart[id] = 1;
         saveCart();
-        renderQtyArea(el, id);
         updateCartUI();
       });
       el.appendChild(btn);
@@ -759,13 +765,11 @@
         cart[id] = Math.max(0, (cart[id]||0) - 1);
         if (cart[id] === 0) delete cart[id];
         saveCart();
-        renderQtyArea(el, id);
         updateCartUI();
       });
       step.querySelector('[data-act="plus"]').addEventListener('click', function(){
         cart[id] = (cart[id]||0) + 1;
         saveCart();
-        renderQtyArea(el, id);
         updateCartUI();
       });
       el.appendChild(step);
@@ -790,6 +794,10 @@
   function updateCartUI(){
     var n = cartCount();
     var total = cartTotal();
+
+    menuEl.querySelectorAll('.qty-area').forEach(function(el){
+      renderQtyArea(el, el.getAttribute('data-id'));
+    });
 
     cartBarItems.textContent = n + (n === 1 ? ' item' : ' itens');
     cartBarTotal.textContent = fmtBRL(total);
