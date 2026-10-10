@@ -218,11 +218,34 @@
     overflow:hidden;
     box-shadow: 0 10px 24px -14px var(--shadow);
   }
-  .card-photo{ aspect-ratio: 4/3; overflow:hidden; }
+  .card-photo{ position:relative; aspect-ratio: 4/3; overflow:hidden; }
   .card-photo img{
     width:100%; height:100%; object-fit:cover;
     transition: transform .5s ease;
   }
+  .card.sold-out .card-photo img{ filter: grayscale(1) brightness(.82); }
+  .sold-out-label{
+    position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    padding:9px 15px;
+    border:1px solid rgba(243,232,214,.75);
+    border-radius:999px;
+    background:rgba(31,59,47,.9);
+    color:#F3E8D6;
+    font-size:13px; font-weight:800; letter-spacing:.08em;
+    white-space:nowrap;
+  }
+  .availability-notice{
+    margin:0 20px 16px;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:var(--bg-elev);
+    color:var(--ink);
+    font-size:13px;
+    line-height:1.5;
+  }
+  .availability-notice[hidden]{ display:none; }
   .card-body{ padding: 18px 20px 20px; }
   .card-name{
     font-family:'Fraunces', serif;
@@ -264,7 +287,14 @@
     transition: transform .12s ease;
   }
   .add-btn:active{ transform: scale(0.94); }
+  .add-btn:disabled{
+    background:var(--line);
+    color:var(--ink-soft);
+    cursor:not-allowed;
+    transform:none;
+  }
   .card.choc .add-btn{ background: var(--butter); color: #4B2E1F; }
+  .card.choc .add-btn:disabled{ background:rgba(243,232,214,.45); color:#4B2E1F; }
 
   .stepper{
     display:flex; align-items:center; gap:14px;
@@ -283,6 +313,7 @@
     line-height:1;
   }
   .stepper button:active{ transform: scale(0.9); }
+  .stepper button:disabled{ opacity:.45; cursor:not-allowed; transform:none; }
   .stepper .qty{
     min-width: 16px; text-align:center;
     font-weight: 800; font-size: 14.5px;
@@ -566,6 +597,7 @@
 
   <h2 class="section-title">Cardápio</h2>
   <p class="section-sub">Assados todos os dias.</p>
+  <div class="availability-notice" id="availabilityNotice" role="status" aria-live="polite" hidden></div>
 
   <div class="menu" id="menu"></div>
 
@@ -693,6 +725,10 @@
   ];
 
   var cart = {};
+  var STOCK = {};
+  var stockLoaded = false;
+  var stockError = false;
+  var removedItemsNotice = "";
 
   try {
     var saved = localStorage.getItem("ica-cart");
@@ -719,6 +755,68 @@
   }
 
   var menuEl = document.getElementById('menu');
+  var availabilityNotice = document.getElementById('availabilityNotice');
+
+  function isAvailable(id){
+    return stockLoaded && !stockError && (!STOCK[id] || STOCK[id].available !== false);
+  }
+
+  function renderAvailabilityNotice(){
+    if (stockError){
+      availabilityNotice.textContent = 'Não foi possível confirmar a disponibilidade dos cookies. As compras estão temporariamente bloqueadas; tente novamente.';
+      availabilityNotice.hidden = false;
+    } else if (removedItemsNotice){
+      availabilityNotice.textContent = removedItemsNotice;
+      availabilityNotice.hidden = false;
+    } else {
+      availabilityNotice.textContent = '';
+      availabilityNotice.hidden = true;
+    }
+  }
+
+  function refreshStock(){
+    return fetch('stock.json', { cache: 'no-store' })
+      .then(function(response){
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .then(function(stock){
+        if (!stock || typeof stock !== 'object' || Array.isArray(stock)){
+          throw new Error('Formato inválido');
+        }
+        Object.keys(stock).forEach(function(id){
+          var productExists = PRODUCTS.some(function(p){ return p.id === id; });
+          if (!productExists || !stock[id] || typeof stock[id].available !== 'boolean'){
+            throw new Error('Configuração inválida para ' + id);
+          }
+        });
+        return stock;
+      })
+      .then(function(stock){
+        STOCK = stock;
+        stockLoaded = true;
+        stockError = false;
+        var removedNames = [];
+        PRODUCTS.forEach(function(p){
+          if ((cart[p.id] || 0) > 0 && STOCK[p.id] && STOCK[p.id].available === false){
+            removedNames.push(p.name);
+            delete cart[p.id];
+          }
+        });
+        if (removedNames.length){
+          saveCart();
+          removedItemsNotice = removedNames.join(', ') +
+            (removedNames.length === 1 ? ' ficou indisponível e foi removido' : ' ficaram indisponíveis e foram removidos') +
+            ' da sua sacola. Confira sua sacola antes de continuar.';
+        }
+        updateCartUI();
+        return removedNames.length === 0;
+      }, function(error){
+        stockError = true;
+        updateCartUI();
+        return false;
+      });
+  }
 
   function renderMenu(){
     menuEl.innerHTML = "";
@@ -726,8 +824,9 @@
       var qty = cart[p.id] || 0;
       var card = document.createElement('div');
       card.className = 'card ' + p.theme;
+      card.setAttribute('data-product-id', p.id);
       card.innerHTML =
-        '<div class="card-photo"><img src="'+p.img+'" alt="'+p.name+'" loading="lazy"/></div>' +
+        '<div class="card-photo"><img src="'+p.img+'" alt="'+p.name+'" loading="lazy"/><span class="sold-out-label" hidden>ESGOTADO</span></div>' +
         '<div class="card-body">' +
           '<h3 class="card-name">'+p.name+'</h3>' +
           '<p class="card-desc">'+p.desc+'</p>' +
@@ -743,15 +842,21 @@
 
   function renderQtyArea(el, id){
     var qty = cart[id] || 0;
+    var available = isAvailable(id);
     el.innerHTML = "";
     if (qty === 0){
       var btn = document.createElement('button');
       btn.className = 'add-btn';
-      btn.textContent = 'Adicionar';
+      btn.disabled = !available;
+      btn.textContent = available ? 'Adicionar' : (stockError ? 'Indisponível' : (stockLoaded ? 'Esgotado' : 'Verificando...'));
       btn.addEventListener('click', function(){
-        cart[id] = 1;
-        saveCart();
-        updateCartUI();
+        if (btn.disabled) return;
+        refreshStock().then(function(ok){
+          if (!ok || !isAvailable(id)) return;
+          cart[id] = (cart[id] || 0) + 1;
+          saveCart();
+          updateCartUI();
+        });
       });
       el.appendChild(btn);
     } else {
@@ -760,7 +865,7 @@
       step.innerHTML =
         '<button aria-label="Diminuir" data-act="minus">−</button>' +
         '<span class="qty">'+qty+'</span>' +
-        '<button aria-label="Aumentar" data-act="plus">+</button>';
+        '<button aria-label="Aumentar" data-act="plus" '+(available ? '' : 'disabled')+'>+</button>';
       step.querySelector('[data-act="minus"]').addEventListener('click', function(){
         cart[id] = Math.max(0, (cart[id]||0) - 1);
         if (cart[id] === 0) delete cart[id];
@@ -768,9 +873,13 @@
         updateCartUI();
       });
       step.querySelector('[data-act="plus"]').addEventListener('click', function(){
-        cart[id] = (cart[id]||0) + 1;
-        saveCart();
-        updateCartUI();
+        if (!isAvailable(id)) return;
+        refreshStock().then(function(ok){
+          if (!ok || !isAvailable(id)) return;
+          cart[id] = (cart[id]||0) + 1;
+          saveCart();
+          updateCartUI();
+        });
       });
       el.appendChild(step);
     }
@@ -798,6 +907,12 @@
     menuEl.querySelectorAll('.qty-area').forEach(function(el){
       renderQtyArea(el, el.getAttribute('data-id'));
     });
+    menuEl.querySelectorAll('.card').forEach(function(card){
+      var soldOut = stockLoaded && !stockError && !isAvailable(card.getAttribute('data-product-id'));
+      card.classList.toggle('sold-out', soldOut);
+      card.querySelector('.sold-out-label').hidden = !soldOut;
+    });
+    renderAvailabilityNotice();
 
     cartBarItems.textContent = n + (n === 1 ? ' item' : ' itens');
     cartBarTotal.textContent = fmtBRL(total);
@@ -838,7 +953,7 @@
         '<div class="stepper" data-id="'+p.id+'">' +
           '<button aria-label="Diminuir" data-act="minus">−</button>' +
           '<span class="qty">'+qty+'</span>' +
-          '<button aria-label="Aumentar" data-act="plus">+</button>' +
+          '<button aria-label="Aumentar" data-act="plus" '+(isAvailable(p.id) ? '' : 'disabled')+'>+</button>' +
         '</div>' +
         '<span class="line-total">'+fmtBRL(p.price*qty)+'</span>';
       row.querySelector('[data-act="minus"]').addEventListener('click', function(){
@@ -848,9 +963,13 @@
         updateCartUI();
       });
       row.querySelector('[data-act="plus"]').addEventListener('click', function(){
-        cart[p.id] = (cart[p.id]||0) + 1;
-        saveCart();
-        updateCartUI();
+        if (!isAvailable(p.id)) return;
+        refreshStock().then(function(ok){
+          if (!ok || !isAvailable(p.id)) return;
+          cart[p.id] = (cart[p.id]||0) + 1;
+          saveCart();
+          updateCartUI();
+        });
       });
       cartItemsWrap.appendChild(row);
     });
@@ -860,7 +979,7 @@
   function validateSendBtn(){
     var n = cartCount();
     var name = nameInput.value.trim();
-    sendBtn.disabled = !(n > 0 && name.length > 0);
+    sendBtn.disabled = !(stockLoaded && !stockError && n > 0 && name.length > 0);
   }
   nameInput.addEventListener('input', function(){
     validateSendBtn();
@@ -886,9 +1005,12 @@
 
   sendBtn.addEventListener('click', function(){
     if (sendBtn.disabled) return;
-    var msg = buildMessage();
-    var url = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
-    window.location.href = url;
+    refreshStock().then(function(ok){
+      if (!ok || cartCount() === 0) return;
+      var msg = buildMessage();
+      var url = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
+      window.location.href = url;
+    });
   });
 
   var overlay = document.getElementById('overlay');
@@ -920,6 +1042,7 @@
 
   renderMenu();
   updateCartUI();
+  refreshStock();
 })();
 </script>
 </body>
