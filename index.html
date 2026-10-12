@@ -223,20 +223,41 @@
     width:100%; height:100%; object-fit:cover;
     transition: transform .5s ease;
   }
-  .card.sold-out .card-photo img{ filter: grayscale(1) brightness(.82); }
+  .card.sold-out .card-photo img{ filter: grayscale(.65) brightness(.9); }
+  .availability-label{
+    position:absolute; left:12px; top:12px;
+    padding:7px 11px;
+    border-radius:999px;
+    font-size:12px; font-weight:800;
+    line-height:1.2;
+  }
+  .available-label{ background:#E5F3E8; color:#174D2A; }
   .sold-out-label{
     position:absolute; left:50%; top:50%;
     transform:translate(-50%,-50%);
     padding:9px 15px;
-    border:1px solid rgba(243,232,214,.75);
+    border:1px solid #D1D5DB;
     border-radius:999px;
-    background:rgba(31,59,47,.9);
-    color:#F3E8D6;
+    background:#E5E7EB;
+    color:#374151;
     font-size:13px; font-weight:800; letter-spacing:.08em;
     white-space:nowrap;
   }
-  .availability-notice{
+  .store-status{
+    display:flex; flex-direction:column; align-items:flex-start; gap:8px;
     margin:0 20px 16px;
+  }
+  .store-badge{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:7px 11px;
+    border-radius:999px;
+    font-size:12px; font-weight:800;
+  }
+  .store-badge svg{ width:15px; height:15px; flex-shrink:0; }
+  .store-badge.open{ background:#E5F3E8; color:#174D2A; }
+  .store-badge.closed,.store-badge.unknown{ background:#E5E7EB; color:#374151; }
+  .availability-notice{
+    margin:0;
     padding:12px 14px;
     border:1px solid var(--line);
     border-radius:14px;
@@ -246,6 +267,7 @@
     line-height:1.5;
   }
   .availability-notice[hidden]{ display:none; }
+  .cart-store-notice{ margin:0 0 12px; }
   .card-body{ padding: 18px 20px 20px; }
   .card-name{
     font-family:'Fraunces', serif;
@@ -597,7 +619,14 @@
 
   <h2 class="section-title">Cardápio</h2>
   <p class="section-sub">Assados todos os dias.</p>
-  <div class="availability-notice" id="availabilityNotice" role="status" aria-live="polite" hidden></div>
+  <div class="store-status" aria-live="polite">
+    <span class="store-badge unknown" id="storeBadge">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      Verificando loja
+    </span>
+    <div class="availability-notice" id="storeNotice" role="status" hidden></div>
+    <div class="availability-notice" id="availabilityNotice" role="status" hidden></div>
+  </div>
 
   <div class="menu" id="menu"></div>
 
@@ -659,6 +688,7 @@
   </button>
   <div class="sheet-handle"></div>
   <h2 id="sheetTitle">Sua sacola</h2>
+  <div class="availability-notice cart-store-notice" id="cartStoreNotice" role="status" aria-live="polite" hidden></div>
 
   <div id="cartItemsWrap"></div>
 
@@ -726,6 +756,7 @@
 
   var cart = {};
   var STOCK = {};
+  var STORE = { open: false, message: "" };
   var stockLoaded = false;
   var stockError = false;
   var removedItemsNotice = "";
@@ -756,9 +787,57 @@
 
   var menuEl = document.getElementById('menu');
   var availabilityNotice = document.getElementById('availabilityNotice');
+  var storeBadge = document.getElementById('storeBadge');
+  var storeNotice = document.getElementById('storeNotice');
+  var cartStoreNotice = document.getElementById('cartStoreNotice');
 
-  function isAvailable(id){
+  function isProductAvailable(id){
     return stockLoaded && !stockError && (!STOCK[id] || STOCK[id].available !== false);
+  }
+
+  function isStoreOpen(){
+    return stockLoaded && !stockError && STORE.open;
+  }
+
+  function canAddProduct(id){
+    return isStoreOpen() && isProductAvailable(id);
+  }
+
+  function closedStoreMessage(){
+    var message = STORE.message.trim();
+    return message
+      ? 'No momento, não estamos aceitando pedidos. ' + message
+      : 'No momento, não estamos aceitando pedidos.';
+  }
+
+  function renderStoreStatus(){
+    var badgeClass = 'unknown';
+    var badgeText = 'Verificando loja';
+    var icon = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
+    var message = '';
+
+    if (stockError){
+      badgeText = 'Status indisponível';
+      message = 'Não foi possível confirmar se a loja está aberta. As compras estão temporariamente bloqueadas; tente novamente.';
+    } else if (stockLoaded && STORE.open){
+      badgeClass = 'open';
+      badgeText = 'Loja aberta';
+      icon = '<path d="M20 6L9 17l-5-5"/>';
+    } else if (stockLoaded){
+      badgeClass = 'closed';
+      badgeText = 'Loja fechada';
+      icon = '<path d="M8 5v14M16 5v14"/>';
+      message = closedStoreMessage();
+    }
+
+    storeBadge.className = 'store-badge ' + badgeClass;
+    storeBadge.innerHTML =
+      '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      icon + '</svg>' + badgeText;
+    storeNotice.textContent = message;
+    storeNotice.hidden = !message;
+    cartStoreNotice.textContent = message;
+    cartStoreNotice.hidden = !message;
   }
 
   function renderAvailabilityNotice(){
@@ -784,16 +863,32 @@
         if (!stock || typeof stock !== 'object' || Array.isArray(stock)){
           throw new Error('Formato inválido');
         }
-        Object.keys(stock).forEach(function(id){
+
+        var productStock = stock;
+        var storeConfig = { open: true, message: "" };
+        var hasStoreConfig = Object.prototype.hasOwnProperty.call(stock, 'store') ||
+          Object.prototype.hasOwnProperty.call(stock, 'products');
+        if (hasStoreConfig){
+          if (!stock.store || typeof stock.store !== 'object' || Array.isArray(stock.store) ||
+              typeof stock.store.open !== 'boolean' || typeof stock.store.message !== 'string' ||
+              !stock.products || typeof stock.products !== 'object' || Array.isArray(stock.products)){
+            throw new Error('Configuração da loja inválida');
+          }
+          storeConfig = stock.store;
+          productStock = stock.products;
+        }
+
+        Object.keys(productStock).forEach(function(id){
           var productExists = PRODUCTS.some(function(p){ return p.id === id; });
-          if (!productExists || !stock[id] || typeof stock[id].available !== 'boolean'){
+          if (!productExists || !productStock[id] || typeof productStock[id].available !== 'boolean'){
             throw new Error('Configuração inválida para ' + id);
           }
         });
-        return stock;
+        return { store: storeConfig, products: productStock };
       })
-      .then(function(stock){
-        STOCK = stock;
+      .then(function(config){
+        STOCK = config.products;
+        STORE = config.store;
         stockLoaded = true;
         stockError = false;
         var removedNames = [];
@@ -809,10 +904,12 @@
             (removedNames.length === 1 ? ' ficou indisponível e foi removido' : ' ficaram indisponíveis e foram removidos') +
             ' da sua sacola. Confira sua sacola antes de continuar.';
         }
+        renderStoreStatus();
         updateCartUI();
         return removedNames.length === 0;
       }, function(error){
         stockError = true;
+        renderStoreStatus();
         updateCartUI();
         return false;
       });
@@ -826,7 +923,7 @@
       card.className = 'card ' + p.theme;
       card.setAttribute('data-product-id', p.id);
       card.innerHTML =
-        '<div class="card-photo"><img src="'+p.img+'" alt="'+p.name+'" loading="lazy"/><span class="sold-out-label" hidden>ESGOTADO</span></div>' +
+        '<div class="card-photo"><img src="'+p.img+'" alt="'+p.name+'" loading="lazy"/><span class="availability-label available-label" hidden>Disponível</span><span class="sold-out-label" hidden>Esgotado</span></div>' +
         '<div class="card-body">' +
           '<h3 class="card-name">'+p.name+'</h3>' +
           '<p class="card-desc">'+p.desc+'</p>' +
@@ -842,17 +939,22 @@
 
   function renderQtyArea(el, id){
     var qty = cart[id] || 0;
-    var available = isAvailable(id);
+    var available = canAddProduct(id);
     el.innerHTML = "";
     if (qty === 0){
       var btn = document.createElement('button');
       btn.className = 'add-btn';
       btn.disabled = !available;
-      btn.textContent = available ? 'Adicionar' : (stockError ? 'Indisponível' : (stockLoaded ? 'Esgotado' : 'Verificando...'));
+      btn.textContent = available ? 'Adicionar' : (
+        stockError ? 'Indisponível' :
+        !stockLoaded ? 'Verificando...' :
+        !STORE.open ? 'Loja fechada' :
+        'Esgotado'
+      );
       btn.addEventListener('click', function(){
         if (btn.disabled) return;
         refreshStock().then(function(ok){
-          if (!ok || !isAvailable(id)) return;
+          if (!ok || !canAddProduct(id)) return;
           cart[id] = (cart[id] || 0) + 1;
           saveCart();
           updateCartUI();
@@ -873,9 +975,9 @@
         updateCartUI();
       });
       step.querySelector('[data-act="plus"]').addEventListener('click', function(){
-        if (!isAvailable(id)) return;
+        if (!canAddProduct(id)) return;
         refreshStock().then(function(ok){
-          if (!ok || !isAvailable(id)) return;
+          if (!ok || !canAddProduct(id)) return;
           cart[id] = (cart[id]||0) + 1;
           saveCart();
           updateCartUI();
@@ -908,10 +1010,13 @@
       renderQtyArea(el, el.getAttribute('data-id'));
     });
     menuEl.querySelectorAll('.card').forEach(function(card){
-      var soldOut = stockLoaded && !stockError && !isAvailable(card.getAttribute('data-product-id'));
+      var productAvailable = isProductAvailable(card.getAttribute('data-product-id'));
+      var soldOut = stockLoaded && !stockError && !productAvailable;
       card.classList.toggle('sold-out', soldOut);
+      card.querySelector('.available-label').hidden = !productAvailable;
       card.querySelector('.sold-out-label').hidden = !soldOut;
     });
+    renderStoreStatus();
     renderAvailabilityNotice();
 
     cartBarItems.textContent = n + (n === 1 ? ' item' : ' itens');
@@ -953,7 +1058,7 @@
         '<div class="stepper" data-id="'+p.id+'">' +
           '<button aria-label="Diminuir" data-act="minus">−</button>' +
           '<span class="qty">'+qty+'</span>' +
-          '<button aria-label="Aumentar" data-act="plus" '+(isAvailable(p.id) ? '' : 'disabled')+'>+</button>' +
+          '<button aria-label="Aumentar" data-act="plus" '+(canAddProduct(p.id) ? '' : 'disabled')+'>+</button>' +
         '</div>' +
         '<span class="line-total">'+fmtBRL(p.price*qty)+'</span>';
       row.querySelector('[data-act="minus"]').addEventListener('click', function(){
@@ -963,9 +1068,9 @@
         updateCartUI();
       });
       row.querySelector('[data-act="plus"]').addEventListener('click', function(){
-        if (!isAvailable(p.id)) return;
+        if (!canAddProduct(p.id)) return;
         refreshStock().then(function(ok){
-          if (!ok || !isAvailable(p.id)) return;
+          if (!ok || !canAddProduct(p.id)) return;
           cart[p.id] = (cart[p.id]||0) + 1;
           saveCart();
           updateCartUI();
@@ -979,7 +1084,7 @@
   function validateSendBtn(){
     var n = cartCount();
     var name = nameInput.value.trim();
-    sendBtn.disabled = !(stockLoaded && !stockError && n > 0 && name.length > 0);
+    sendBtn.disabled = !(isStoreOpen() && n > 0 && name.length > 0);
   }
   nameInput.addEventListener('input', function(){
     validateSendBtn();
@@ -1004,9 +1109,9 @@
   }
 
   sendBtn.addEventListener('click', function(){
-    if (sendBtn.disabled) return;
+    if (sendBtn.disabled || !isStoreOpen()) return;
     refreshStock().then(function(ok){
-      if (!ok || cartCount() === 0) return;
+      if (!ok || !isStoreOpen() || cartCount() === 0) return;
       var msg = buildMessage();
       var url = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
       window.location.href = url;

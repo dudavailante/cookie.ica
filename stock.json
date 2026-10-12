@@ -1,6 +1,12 @@
 {
-  "nutella": { "available": true },
-  "red-velvet": { "available": true },
-  "laranja-doce-de-leite": { "available": true },
-  "ninho": { "available": true }
+  "store": {
+    "open": true,
+    "message": ""
+  },
+  "products": {
+    "nutella": { "available": true },
+    "red-velvet": { "available": true },
+    "laranja-doce-de-leite": { "available": true },
+    "ninho": { "available": true }
+  }
 }
